@@ -14,7 +14,7 @@ let db;
 
 MongoClient.connect(process.env.PROD_MONGODB, (err, database) => {
   if(err) throw err;
-  db = database.db('decavolunteer');
+  db = database.db('whs');
 
   app.listen(PORT, () => {
     console.log(`Server running on ${PORT}`);
