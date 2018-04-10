@@ -1,0 +1,18 @@
+{
+  "name": "WHS-Server",
+  "version": "1.0.0",
+  "description": "Server for WHS app",
+  "main": "index.js",
+  "repository": "https://github.com/Li357/WHS-Server.git",
+  "author": "Li357",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.3",
+    "mongodb": "^3.0.6"
+  }
+}
