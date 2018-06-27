@@ -33,8 +33,6 @@ app.get('/dates', (req, res) => {
   });
 });
 
-const rangeOfDates = (month, first, last) => Array(last - first).fill().map((_, i) => `${month} ${i + Number(first)}`);
-
 app.get('/specialDates', async (req, res) => {
   try {
     const now = moment();
@@ -85,14 +83,14 @@ app.get('/specialDates', async (req, res) => {
     const lastDayDate = text.slice(lastDaySlice, lastDaySlice + 6).trim();
 
     res.status(200).json({
-      semesterOneStart: semOneDate,
-      semesterTwoStart: semTwoDate,
-      lastDay: lastDayDate,
+      semOneDate,
+      semTwoDate,
+      lastDayDate,
       noSchoolDates: dates,
       startOfSchoolYear,
     });
   } catch(error) {
-    console.log(error);
+    console.log(error, 'Endpoint /specialDates', new Date());
     res.status(400).json(JSON.stringify(error));
   }
 });
