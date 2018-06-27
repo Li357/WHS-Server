@@ -57,41 +57,17 @@ app.get('/specialDates', async (req, res) => {
 
     const { text } = await crawler(pdfLink);
 
-    /*const noSchoolString = 'NO SCHOOL';
+    const startOfSchoolYear = `20${lookFor.slice(0, 2)}`;
+
+    const noSchoolString = 'NO SCHOOL';
     const noSchoolIndex = text.indexOf(noSchoolString);
-    const decemberIndex = text.indexOf(`December 20${lookFor.slice(0, 2)}`);
+    const decemberIndex = text.indexOf(`December ${startOfSchoolYear}`);
     // This assumes that December 20XX follows directly after dates list
     const monthRegex = '(January|February|March|April|May|August|September|October|November|December)';
     const dateRegex = new RegExp(`${monthRegex} [\\d-]+([ -]+${monthRegex} \\d+)?`, 'g');
     const dates = text.slice(noSchoolIndex + noSchoolString.length, decemberIndex)
       .trim()
-      .match(dateRegex)
-      .reduce((expanded, string, index, array) => {
-        if(string.includes('-')) {
-          const [firstPart, lastPart] = string.split('-');
-          if(lastPart.match(/[A-Za-z]+/)) {
-            // Assumes this only happens with spring or winter break
-            // Handles cases like December 20 - January 4
-            const [firstMonth, firstDay] = firstPart.trim().split(' ');
-            const [secondMonth, lastDay] = lastPart.trim().split(' ');
-
-            return [
-              ...expanded,
-              ...rangeOfDates(firstMonth, firstDay, 31),
-              ...rangeOfDates(secondMonth, 1, lastDay),
-            ];
-          } else {
-            // Handles cases like March 18-22
-            const [month, dayRange] = string.split(' ');
-            const  [first, last] = dayRange.split('-');
-            return [
-              ...expanded,
-              ...rangeOfDates(month, first, last),
-            ];
-          }
-        }
-        return [...expanded, string];
-      }, []);
+      .match(dateRegex);
 
     const [semOne, semTwo, lastDay] = ['Semester 1: ', 'Semester 2: ', 'Last Day of School '].map(searchString => ({
       index: text.indexOf(searchString),
@@ -108,12 +84,13 @@ app.get('/specialDates', async (req, res) => {
     const lastDaySlice = lastDay.index + lastDay.length;
     const lastDayDate = text.slice(lastDaySlice, lastDaySlice + 6).trim();
 
+    const schoolStartNextYear = Number(startOfSchoolYear) + 1;
     res.status(200).json({
-      semesterOneStart: semOneDate,
-      semesterTwoStart: semTwoDate,
-      lastDay: lastDayDate,
-      noSchoolDates: dates
-    });*/
+      semesterOneStart: moment(`${semOneDate} ${startOfSchoolYear}`, 'MMMM D YYYY'),
+      semesterTwoStart: moment(`${semTwoDate} ${schoolStartNextYear}`, 'MMMM D YYYY'),
+      lastDay: moment(`${lastDayDate} ${schoolStartNextYear}`, 'MMMM D YYYY'),
+      noSchoolDates: dates,
+    });
     res.status(200).json({
       text,
       lookFor,
