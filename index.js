@@ -55,17 +55,35 @@ app.get('/specialDates', async (req, res) => {
 
     const { text } = await crawler(pdfLink);
 
-    const startOfSchoolYear = `20${lookFor.slice(0, 2)}`;
-
     const noSchoolString = 'NO SCHOOL';
     const noSchoolIndex = text.indexOf(noSchoolString);
-    const decemberIndex = text.indexOf(`December ${startOfSchoolYear}`);
+    const decemberIndex = text.indexOf(`December 20${lookFor.slice(0, 2)}`);
     // This assumes that December 20XX follows directly after dates list
     const monthRegex = '(January|February|March|April|May|August|September|October|November|December)';
     const dateRegex = new RegExp(`${monthRegex} [\\d-]+([ -]+${monthRegex} \\d+)?`, 'g');
     const dates = text.slice(noSchoolIndex + noSchoolString.length, decemberIndex)
       .trim()
-      .match(dateRegex);
+      .match(dateRegex)
+      .reduce((expanded, string) => {
+        if (string.includes('-')) {
+          const parts = string.split('-');
+          // Handles cases like December 20 - January 4
+          if (parts[1].match(/[A-Za-z]+/)) {
+            // Assumes this only happens with spring or winter break
+            const [firstDate, lastDate] = parts.map(part => part.trim().split(' '));
+
+            return [
+              ...expanded,
+              ...rangeOfDates(...firstDate, 31), // December and March have 31 days
+              ...rangeOfDates(lastDate[0], 1, lastDate[1]),
+            ];
+          }
+          // Handles cases like March 18-22
+          const [month, dayRange] = string.split(' ');
+          return [...expanded, ...rangeOfDates(month, ...dayRange.split('-'))];
+        }
+        return [...expanded, string];
+      }, []);
 
     const [semOne, semTwo, lastDay] = ['Semester 1: ', 'Semester 2: ', 'Last Day of School '].map(searchString => ({
       index: text.indexOf(searchString),
@@ -87,7 +105,6 @@ app.get('/specialDates', async (req, res) => {
       semTwoDate,
       lastDayDate,
       noSchoolDates: dates,
-      startOfSchoolYear,
     });
   } catch(error) {
     console.log(error, 'Endpoint /specialDates', new Date());
