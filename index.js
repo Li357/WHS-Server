@@ -84,16 +84,12 @@ app.get('/specialDates', async (req, res) => {
     const lastDaySlice = lastDay.index + lastDay.length;
     const lastDayDate = text.slice(lastDaySlice, lastDaySlice + 6).trim();
 
-    const schoolStartNextYear = Number(startOfSchoolYear) + 1;
     res.status(200).json({
-      semesterOneStart: moment(`${semOneDate} ${startOfSchoolYear}`, 'MMMM D YYYY'),
-      semesterTwoStart: moment(`${semTwoDate} ${schoolStartNextYear}`, 'MMMM D YYYY'),
-      lastDay: moment(`${lastDayDate} ${schoolStartNextYear}`, 'MMMM D YYYY'),
+      semesterOneStart: semOneDate,
+      semesterTwoStart: semTwoDate,
+      lastDay: lastDayDate,
       noSchoolDates: dates,
-    });
-    res.status(200).json({
-      text,
-      lookFor,
+      startOfSchoolYear,
     });
   } catch(error) {
     console.log(error);
