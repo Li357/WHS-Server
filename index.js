@@ -57,7 +57,7 @@ app.get('/specialDates', async (req, res) => {
 
     const { text } = await crawler(pdfLink);
 
-    const noSchoolString = 'NO SCHOOL';
+    /*const noSchoolString = 'NO SCHOOL';
     const noSchoolIndex = text.indexOf(noSchoolString);
     const decemberIndex = text.indexOf(`December 20${lookFor.slice(0, 2)}`);
     // This assumes that December 20XX follows directly after dates list
@@ -113,7 +113,8 @@ app.get('/specialDates', async (req, res) => {
       semesterTwoStart: semTwoDate,
       lastDay: lastDayDate,
       noSchoolDates: dates
-    });
+    });*/
+    res.status(200).send(text);
   } catch(error) {
     console.log(error);
     res.status(400).json(JSON.stringify(error));
