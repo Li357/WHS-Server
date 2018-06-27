@@ -33,6 +33,10 @@ app.get('/dates', (req, res) => {
   });
 });
 
+const rangeOfDates = (month, first, last) => (
+  Array(last - first).fill().map((_, i) => `${month} ${i + Number(first)}`)
+);
+
 app.get('/specialDates', async (req, res) => {
   try {
     const now = moment();
