@@ -114,7 +114,10 @@ app.get('/specialDates', async (req, res) => {
       lastDay: lastDayDate,
       noSchoolDates: dates
     });*/
-    res.status(200).send(text);
+    res.status(200).json({
+      text,
+      lookFor,
+    });
   } catch(error) {
     console.log(error);
     res.status(400).json(JSON.stringify(error));
