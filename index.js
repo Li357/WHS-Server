@@ -26,6 +26,11 @@ MongoClient.connect(process.env.PROD_MONGODB, (err, database) => {
   });
 });
 
+app.get('/', (req, res) => {
+  // To act as dummy endpoint for no-idle heroku ping
+  res.status(200).end();
+});
+
 app.get('/dates', (req, res) => {
   db.collection('dates').findOne({}, (err, docs) => {
     if(err) throw err;
@@ -49,7 +54,6 @@ app.get('/specialDates', async (req, res) => {
       lookFor = `${year - 1}-${year}`; // i.e. in May 2018, years are 17-18
     }
 
-    console.time('get calendar page');
     const calendarPage = await fetch('https://westside66.org/calendar/');
     const calendarPageHTML = await calendarPage.text();
     const $ = load(calendarPageHTML);
@@ -57,11 +61,9 @@ app.get('/specialDates', async (req, res) => {
       .map((i, el) => $(el).attr('href'))
       .toArray()
       .find(href => href.includes(lookFor) && href.includes('Student')); // Always get student calendar
-    console.timeEnd('get calendar page');
-    console.time('get pdf');
+
     const { text } = await crawler(pdfLink);
-    console.timeEnd('get pdf');
-    console.time('process pdf');
+
     const noSchoolString = 'NO SCHOOL';
     const noSchoolIndex = text.indexOf(noSchoolString);
     const decemberIndex = text.indexOf(`December 20${lookFor.slice(0, 2)}`);
@@ -106,7 +108,7 @@ app.get('/specialDates', async (req, res) => {
     // Plus 3 & 3 because May (3 chars) + 3 (space and 2 digits max)
     const lastDaySlice = lastDay.index + lastDay.length;
     const lastDayDate = text.slice(lastDaySlice, lastDaySlice + 6).trim();
-    console.timeEnd('process pdf');
+
     res.status(200).json({
       semOneDate,
       semTwoDate,
