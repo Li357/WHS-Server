@@ -41,6 +41,11 @@ app.get('/dates', (req, res) => {
 const rangeOfDates = (month, first, last) => (
   Array((Number(last) + 1) - first).fill().map((_, i) => `${month} ${i + Number(first)}`)
 );
+const includeYear = date => {
+  const newDate = moment(date, 'MMMM D')
+  const month = newDate.month();
+  return `${date} ${newDate.year() + Number(month < 5)}`;
+}
 
 app.get('/specialDates', async (req, res) => {
   try {
@@ -66,6 +71,7 @@ app.get('/specialDates', async (req, res) => {
 
     const noSchoolString = 'NO SCHOOL';
     const noSchoolIndex = text.indexOf(noSchoolString);
+    // Assumes that dates are 20XX
     const decemberIndex = text.indexOf(`December 20${lookFor.slice(0, 2)}`);
     // This assumes that December 20XX follows directly after dates list
     const monthRegex = '(January|February|March|April|May|August|September|October|November|December)';
@@ -83,15 +89,15 @@ app.get('/specialDates', async (req, res) => {
 
             return [
               ...expanded,
-              ...rangeOfDates(...firstDate, 31), // December and March have 31 days
-              ...rangeOfDates(lastDate[0], 1, lastDate[1]),
+              ...rangeOfDates(...firstDate, 31).map(includeYear), // December and March have 31 days
+              ...rangeOfDates(lastDate[0], 1, lastDate[1]).map(includeYear),
             ];
           }
           // Handles cases like March 18-22
           const [month, dayRange] = string.split(' ');
-          return [...expanded, ...rangeOfDates(month, ...dayRange.split('-'))];
+          return [...expanded, ...rangeOfDates(month, ...dayRange.split('-')).map(includeYear)];
         }
-        return [...expanded, string];
+        return [...expanded, includeYear(string)];
       }, []);
 
     const [semOne, semTwo, lastDay] = ['Semester 1: ', 'Semester 2: ', 'Last Day of School '].map(searchString => ({
@@ -99,21 +105,26 @@ app.get('/specialDates', async (req, res) => {
       length: searchString.length,
     }));
 
-    const semOneDate = text.slice(semOne.index + semOne.length, semTwo.index).trim();
+    const semOneDate = includeYear(text.slice(semOne.index + semOne.length, semTwo.index).trim());
 
     // Plus 9 & 3 because January (7 chars) + 3 (space and 2 digits max)
     const semTwoSlice = semTwo.index + semTwo.length;
-    const semTwoDate = text.slice(semTwoSlice, semTwoSlice + 10).trim();
+    const semTwoDate = includeYear(text.slice(semTwoSlice, semTwoSlice + 10).trim());
 
     // Plus 3 & 3 because May (3 chars) + 3 (space and 2 digits max)
     const lastDaySlice = lastDay.index + lastDay.length;
-    const lastDayDate = text.slice(lastDaySlice, lastDaySlice + 6).trim();
+    const lastDayDate = includeYear(text.slice(lastDaySlice, lastDaySlice + 6).trim());
+
+    // This gets the current school year's other dates, specific to WHS and not found on the PDF,
+    // i.e. ACT testing dates or assemblies
+    const { noSchoolDates: noSchool, ...otherDates } = (await db.collection('otherDates').findOne({}))[lookFor];
 
     res.status(200).json({
       semOneDate,
       semTwoDate,
       lastDayDate,
-      noSchoolDates: dates,
+      noSchoolDates: [...dates, ...noSchool],
+      ...otherDates,
     });
   } catch(error) {
     console.log(error, 'Endpoint /specialDates', new Date());
