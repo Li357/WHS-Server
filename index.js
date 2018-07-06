@@ -120,9 +120,9 @@ app.get('/specialDates', async (req, res) => {
     const { noSchoolDates: noSchool, ...otherDates } = (await db.collection('otherDates').findOne({}))[lookFor];
 
     res.status(200).json({
-      semOneDate,
-      semTwoDate,
-      lastDayDate,
+      semesterOneStart: semOneDate,
+      semesterTwoStart: semTwoDate,
+      lastDay: lastDayDate,
       noSchoolDates: [...dates, ...noSchool],
       ...otherDates,
     });
