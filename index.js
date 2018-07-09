@@ -38,6 +38,26 @@ app.get('/dates', (req, res) => {
   });
 });
 
+app.get('/otherDates', async (req, res) => {
+  try {
+    const now = moment();
+    const fullYear = now.year();
+    const year = Number(String(fullYear).slice(-2, fullYear.length)); // Get last two numbers from year
+    let yearRange;
+    if(now.month() > 4) { // If after May (0-based)
+      yearRange = `${year}-${year + 1}`; // i.e. in June 2018, years are 18-19
+    } else {
+      yearRange = `${year - 1}-${year}`; // i.e. in May 2018, years are 17-18
+    }
+
+    const dates = (await db.collection('otherDates').findOne({}))[yearRange];
+    res.status(200).json(dates);
+  } catch (error) {
+    console.log(error, 'Endpoint /otherDates', new Date());
+    res.status(400).json(JSON.stringify(error));
+  }
+});
+
 const rangeOfDates = (month, first, last) => (
   Array((Number(last) + 1) - first).fill().map((_, i) => `${month} ${i + Number(first)}`)
 );
@@ -117,13 +137,13 @@ app.get('/specialDates', async (req, res) => {
 
     // This gets the current school year's other dates, specific to WHS and not found on the PDF,
     // i.e. ACT testing dates or assemblies
-    const { noSchoolDates: noSchool, ...otherDates } = (await db.collection('otherDates').findOne({}))[lookFor];
+    const otherDates = (await db.collection('otherDates').findOne({}))[lookFor];
 
     res.status(200).json({
       semesterOneStart: semOneDate,
       semesterTwoStart: semTwoDate,
       lastDay: lastDayDate,
-      noSchoolDates: [...dates, ...noSchool],
+      noSchoolDates: dates,
       ...otherDates,
     });
   } catch(error) {
