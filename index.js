@@ -38,6 +38,16 @@ app.get('/dates', (req, res) => {
   });
 });
 
+app.post('/errors', async (req, res) => {
+  try {
+    await db.collection('errors').insertMany(req.body.errors);
+    res.status(200).end();
+  } catch(error) {
+    console.log(error, 'Endpoint /errors', new Date());
+    res.status(400).json(JSON.stringify(error));
+  }
+});
+
 app.get('/otherDates', async (req, res) => {
   try {
     const now = moment();
