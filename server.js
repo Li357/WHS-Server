@@ -6,19 +6,26 @@ const moment = require('moment');
 const crawler = require('crawler-request');
 const { load } = require('cheerio');
 const fetch = require('node-fetch');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(bodyParser.urlencoded({
-  extended: true
-}));
+if(process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'dist')));
+} else {
+  app.use(cors());
+}
+
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 let db;
 
 MongoClient.connect(process.env.PROD_MONGODB, (err, database) => {
-  if(err) throw err;
+  if(err) console.log(err, 'Connecting to database', new Date());
   db = database.db('whs');
 
   app.listen(PORT, () => {
@@ -26,26 +33,33 @@ MongoClient.connect(process.env.PROD_MONGODB, (err, database) => {
   });
 });
 
-app.get('/', (req, res) => {
-  // To act as dummy endpoint for no-idle heroku ping
-  res.status(200).end();
+/* Login endpoint */
+app.post('/login', (req, res) => {
+  db.collection('users').findOne({ username: 'admin' }, (err, doc) => {
+    if (err) console.log(err, 'Endpoint /login', new Date());
+    bcrypt.compare(req.body.password, doc.password, (err, success) => {
+      if (success) {
+        const token = jwt.sign({ user: 'admin' }, process.env.SECRET, { expiresIn: '7d' });
+        res.status(200).json({
+          auth: true,
+          token,
+        });
+      } else {
+        res.status(400).send({
+          auth: false,
+          token: null,
+        });
+      }
+    });
+  })
 });
 
+/* Date endpoints */
 app.get('/dates', (req, res) => {
-  db.collection('dates').findOne({}, (err, docs) => {
-    if(err) throw err;
-    res.json(docs.dates);
+  db.collection('dates').findOne({}, (err, doc) => {
+    if(err) console.log(err, 'Endpoint /dates', new Date());
+    res.json(doc.dates);
   });
-});
-
-app.post('/errors', async (req, res) => {
-  try {
-    await db.collection('errors').insertMany(req.body.errors);
-    res.status(200).end();
-  } catch(error) {
-    console.log(error, 'Endpoint /errors', new Date());
-    res.status(400).json(JSON.stringify(error));
-  }
 });
 
 app.get('/otherDates', async (req, res) => {
@@ -79,14 +93,18 @@ const includeYear = date => {
 
 app.get('/specialDates', async (req, res) => {
   try {
-    const now = moment();
-    const fullYear = now.year();
-    const year = Number(String(fullYear).slice(-2, fullYear.length)); // Get last two numbers from year
     let lookFor;
-    if(now.month() > 4) { // If after May (0-based)
-      lookFor = `${year}-${year + 1}`; // i.e. in June 2018, years are 18-19
+    if (req.query.lookup) {
+      lookFor = req.query.lookup;
     } else {
-      lookFor = `${year - 1}-${year}`; // i.e. in May 2018, years are 17-18
+      const now = moment();
+      const fullYear = now.year();
+      const year = Number(String(fullYear).slice(-2, fullYear.length)); // Get last two numbers from year
+      if(now.month() > 4) { // If after May (0-based)
+        lookFor = `${year}-${year + 1}`; // i.e. in June 2018, years are 18-19
+      } else {
+        lookFor = `${year - 1}-${year}`; // i.e. in May 2018, years are 17-18
+      }
     }
 
     const calendarPage = await fetch('https://westside66.org/calendar/');
