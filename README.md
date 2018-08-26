@@ -1,5 +1,2 @@
-Server for WHS app.
-
-Currently used for storing assembly and other special dates.
-
-Created using MongoDB & Express
+Full-stack database management app for the WHS app. Used for managing special dates within the WHS app.
+Built with Vue.js with Element UI, MongoDB, and Express.
