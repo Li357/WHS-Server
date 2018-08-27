@@ -2,43 +2,27 @@
   <div class="date-list">
     <el-container>
       <el-header class="date-list-header" height="75px">
-        {{ year }} - {{ year + 1 }} {{ type }} Dates
+        {{ startYear }} - {{ startYear + 1 }} {{ dateType }} Dates
         <el-button
           class="date-list-add" type="primary" icon="el-icon-plus"
           @click="addingDate = true" round
-        >
-          Add Date
-        </el-button>
-        <el-dialog
-          title="Add Date"
-          :visible.sync="addingDate"
-          width="30%"
-        >
-          <el-row>
-            <el-date-picker
-              v-model="newDate"
-              type="date"
-              placeholder="Pick new date"
-            ></el-date-picker>
-            <el-button
-              type="primary" class="date-list-add-submit"
-              @click="addDate" :disabled="newDate === null"
-            >
-              Add Date
-            </el-button>
-          </el-row>
-        </el-dialog>
+        >Add Date</el-button>
+        <el-button
+          type="danger" icon="el-icon-check"
+          @click="saveDates" :disabled="savingDates" round
+        >Save Dates</el-button>
+        <add-date-dialog :adding-date="addingDate" @add="addDate" @close="addingDate = false">
+        </add-date-dialog>
       </el-header>
-      <el-table :data="stringDates" empty-text="No dates">
+      <el-table :data="dates" empty-text="No dates" v-loading="savingDates || loadingDates">
         <el-table-column prop="date" label="Date"></el-table-column>
+        <el-table-column prop="comment" label="Comment"></el-table-column>
         <el-table-column align="right">
           <template slot-scope="scope">
             <el-button
               type="danger" size="mini" icon="el-icon-delete"
               @click="removeDate(scope.$index)"
-            >
-              Delete
-            </el-button>
+            >Delete</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -49,35 +33,114 @@
 <script>
 import moment from 'moment';
 
-const getDateSuffix = year => String(year).slice(2); 
-const dateToLookupString = year => `${getDateSuffix(year)}-${getDateSuffix(year + 1)}`;
+import AddDateDialog from '@/components/AddDateDialog.vue';
+import { dateTypes } from '@/utils';
 
 export default {
   name: 'date-list',
-  props: ['year', 'type', 'dates'],
-  data: () => ({
-    addingDate: false,
-    newDate: null,
-  }),
+  data() {
+    const { startYear, dateTypeId } = this.$route.params;
+
+    return {
+      startYear: Number(startYear),
+      dateTypeId,
+      addingDate: false,
+      savingDates: false,
+      loadingDates: true,
+      dates: [],
+      datesModified: false,
+    };
+  },
+  components: { AddDateDialog },
   methods: {
-    addDate() {
-      this.dates.push({ date: this.newDate });
-      this.newDate = null;
+    async fetchDates() {
+      this.loadingDates = true;
+      try {
+        const datesRes = await fetch(this.datesEndpoint);
+        if (!datesRes.ok) throw new Error();
+        const { dates = [] } = await datesRes.json() || {};
+        this.dates = dates;
+      } catch (error) {
+        this.$notify({
+          title: 'Error',
+          message: 'There was an error loading dates from database.',
+        });
+        this.dates = [];
+      }
+      this.loadingDates = false;
+    },
+    addDate(dateOrDates, comment) {
+      this.datesModified = true;
+      if (Array.isArray(dateOrDates)) {
+        const [start, end] = dateOrDates.map(date => moment(date));
+        const days = moment.duration(end.diff(start)).asDays();
+
+        Array(days).fill().forEach(() => {
+          this.dates.push({
+            date: start.add(1, 'd').format('MMMM D YYYY'),
+            comment,
+          });
+        });
+      } else {
+        this.dates.push({
+          date: moment(dateOrDates).format('MMMM D YYYY'),
+          comment,
+        });
+      }
       this.addingDate = false;
     },
     removeDate(index) {
+      this.datesModified = true;
       this.dates.splice(index, 1);
+    },
+    async saveDates() {
+      this.savingDates = true;
+      try {
+        const saveRes = await fetch(this.datesEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ dates: this.dates }),
+        });
+        if (!saveRes.ok) throw new Error();
+        this.$notify({
+          title: 'Success',
+          message: 'Changes have successfully been saved!',
+        });
+      } catch (error) {
+        this.$notify({
+          title: 'Error',
+          message: 'There was an error saving your dates.',
+        });
+      }
+      this.savingDates = false;
+      this.datesModified = false;
+    },
+    async onRouteChange(key) {
+      if (this.datesModified) await this.saveDates();
+      this[key] = Number(this.$route.params[key]);
+      this.fetchDates();
     },
   },
   computed: {
-    /* filteredDates() {
-      return this.dates
+    dateType() {
+      return dateTypes[this.dateTypeId];
     },
-    stringDates() {
-      return this.dates.map(({ date }) => ({
-        date: moment(date).format('MMMM D, YYYY'),
-      }));
-    }, */
+    datesEndpoint() {
+      return `/api/specialDates?type=${this.dateTypeId}&year=${this.startYear}`;
+    },
+  },
+  watch: {
+    '$route.params.startYear'() {
+      this.onRouteChange('startYear');
+    },
+    '$route.params.dateTypeId'() {
+      this.onRouteChange('dateTypeId');
+    },
+  },
+  created() {
+    this.fetchDates();
   },
 };
 </script>
@@ -96,9 +159,5 @@ export default {
 
 .date-list-add {
   margin-left: auto;
-}
-
-.date-list-add-submit {
-  float: right;
 }
 </style>

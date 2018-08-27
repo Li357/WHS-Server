@@ -5,16 +5,7 @@
 </template>
 
 <script>
-import Login from '@/views/Login.vue';
-import Dashboard from '@/views/Dashboard.vue';
-
-export default {
-  name: 'app',
-  components: {
-    Login,
-    Dashboard,
-  },
-};
+export default { name: 'app' };
 </script>
 
 <style>

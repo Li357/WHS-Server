@@ -11,20 +11,19 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
-    "start": "node server.js"
+    "start": "node backend/server.js",
+    "build:local": "yarn build && cross-env NODE_ENV=production nodemon backend/server.js",
+    "heroku-postbuild": "yarn build"
   },
   "dependencies": {
     "bcrypt": "^3.0.0",
     "body-parser": "^1.18.2",
-    "cheerio": "^1.0.0-rc.2",
     "cors": "^2.8.4",
-    "crawler-request": "^1.2.2",
     "element-ui": "^2.4.6",
     "express": "^4.16.3",
     "jsonwebtoken": "^8.3.0",
     "moment": "^2.22.2",
     "mongodb": "^3.0.6",
-    "node-fetch": "^2.1.2",
     "vue": "^2.5.17",
     "vue-router": "^3.0.1"
   },

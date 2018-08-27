@@ -9,58 +9,40 @@
         <el-aside class="dashboard-navbar" width="20%">
           <el-menu
             class="dashboard-navbar-list" unique-opened
-            :default-active="`${selectedYear}-${dateTypes[0]}`"
+            :default-active="`${years[0]}-1`"
           >
             <el-submenu v-for="year in years" :key="year" :index="`${year}`">
-              <template slot="title">
-                {{ year }} - {{ year + 1 }}
-              </template>
+              <template slot="title">{{ year }} - {{ year + 1 }}</template>
               <el-menu-item
-                v-for="type in dateTypes" :key="type" :index="`${year}-${type}`"
-                @click="setSelection(year, type)"
-              >
-                {{ type }}
-              </el-menu-item>
+                v-for="(dateType, dateTypeId) in dateTypes"
+                :key="dateType" :index="`${year}-${dateTypeId}`"
+                @click="$router.push(`/dashboard/${year}/${dateTypeId}`)"
+              >{{ dateType }}</el-menu-item>
             </el-submenu>
           </el-menu>
         </el-aside>
-        <date-list :dates="fetchedDates" :year="selectedYear" :type="selectedType">
-        </date-list>
+        <router-view></router-view>
       </el-container>
     </el-container>
   </div>
 </template>
 
 <script>
-import DateList from '@/components/DateList.vue';
-
-const currentYear = new Date().getFullYear();
-const dateTypes = ['Assembly', 'No School', 'Late Start', 'Early Dismissal'];
+import { dateTypes } from '@/utils';
 
 export default {
   name: 'dashboard',
   data: () => ({
     dateTypes,
     years: Array(5)
-      .fill(currentYear)
+      .fill(new Date().getFullYear())
       .map((year, index) => year + index),
-    selectedYear: currentYear,
-    selectedType: dateTypes[0],
-    fetchedDates: [],
   }),
-  components: { DateList },
   methods: {
     logout() {
       localStorage.removeItem('jwt');
       this.$router.push('/login');
     },
-    setSelection(year, type) {
-      this.selectedYear = year;
-      this.selectedType = type;
-    },
-  },
-  created() {
-
   },
 };
 </script>

@@ -1,7 +1,7 @@
 <template>
   <div id="login">
     <el-card class="login-card">
-      <div slot="header">Login to WHS Backend</div>
+      <div slot="header">Login to WHS App Server</div>
       <el-alert v-if="error.length > 0" :title="error" type="error"></el-alert>
       <el-input placeholder="Username" v-model="username" class="login-input"></el-input>
       <el-input
@@ -26,11 +26,8 @@ export default {
   }),
   methods: {
     async login() {
-      const url = process.env.NODE_ENV === 'production' ?
-        'https://whs-server.herokuapp.com/login' : 'http://localhost:5000/login';
-
       try {
-        const loginRes = await fetch(url, {
+        const loginRes = await fetch('/api/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -40,11 +37,13 @@ export default {
             password: this.password,
           }),
         });
+        if (!loginRes.ok) throw new Error('There was an error logging in');
         const { auth, token } = await loginRes.json();
 
         if (auth) {
           localStorage.setItem('jwt', token);
-          this.$router.push('/');
+          const currentYear = new Date().getFullYear();
+          this.$router.push(`dashboard/${currentYear}/1`);
         } else throw new Error('Your username or password is incorrect');
       } catch ({ message }) {
         this.error = message;
