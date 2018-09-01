@@ -9,18 +9,18 @@
         <el-aside class="dashboard-navbar" width="20%">
           <el-menu
             class="dashboard-navbar-list" unique-opened
-            :default-active="`${years[0]}-1`"
+            :default-active="`${startYear}-${dateTypeId}`"
           >
             <el-submenu v-for="year in years" :key="year" :index="`${year}`">
               <template slot="title">{{ year }} - {{ year + 1 }}</template>
               <el-menu-item
-                v-for="(dateType, dateTypeId) in dateTypes"
-                :key="dateType" :index="`${year}-${dateTypeId}`"
-                @click="$router.push(`/dashboard/${year}/${dateTypeId}`)"
+                v-for="(dateType, typeId) in dateTypes"
+                :key="dateType" :index="`${year}-${typeId}`"
+                @click="$router.push(`/dashboard/${year}/${typeId}`)"
               >{{ dateType }}</el-menu-item>
             </el-submenu>
           </el-menu>
-          <year-settings></year-settings>
+          <year-settings :year="startYear"></year-settings>
         </el-aside>
         <router-view></router-view>
       </el-container>
@@ -34,6 +34,7 @@ import { dateTypes } from '@/utils';
 
 export default {
   name: 'dashboard',
+  props: ['startYear', 'dateTypeId'],
   data: () => ({
     dateTypes,
     years: Array(5)

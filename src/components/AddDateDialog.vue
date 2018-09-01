@@ -28,7 +28,7 @@
         <el-input v-model="comment" placeholder="Add comment"></el-input>
         <el-button
           type="primary" class="date-list-add-submit"
-          @click="$emit('add', newDateOrDates, comment)" :disabled="newDateOrDates === null"
+          @click="handleClick" :disabled="newDateOrDates === null"
         >Add Date</el-button>
       </el-row>
     </el-dialog>
@@ -43,6 +43,13 @@ export default {
     newDateOrDates: null,
     comment: '',
   }),
+  methods: {
+    handleClick() {
+      this.$emit('add', this.newDateOrDates, this.comment);
+      this.newDateOrDates = null;
+      this.comment = '';
+    },
+  },
 };
 </script>
 

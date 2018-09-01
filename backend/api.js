@@ -56,9 +56,10 @@ api.get('/specialDates', async ({ db, query: { type, year } }, res) => {
 
 api.post('/specialDates', requiresAuth(user => user.admin), async ({ db, body, query: { type, year } }, res) => {
   try {
+    const set = body.dates ? { dates: body.dates } : { settings: body.settings };
     await db.collection('specialDates').update(
       { type, year }, 
-      { $set: { dates: body.dates } }, 
+      { $set: set }, 
       { upsert: true },
     );
     res.status(200).json({ auth: true });

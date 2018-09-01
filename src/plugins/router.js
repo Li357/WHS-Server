@@ -16,7 +16,9 @@ const routes = [
     children: [{
       path: ':dateTypeId',
       component: DateList,
+      props: true,
     }],
+    props: true,
   },
   { path: '/login', component: Login },
   { path: '*', component: NotFound },

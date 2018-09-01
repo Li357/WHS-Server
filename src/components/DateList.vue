@@ -2,19 +2,19 @@
   <div class="date-list">
     <el-container>
       <el-header class="date-list-header" height="75px">
-        {{ startYear }} - {{ startYear + 1 }} {{ dateType }} Dates
+        {{ startYear }} - {{ Number(startYear) + 1 }} {{ dateType }} Dates
         <el-button
           class="date-list-add" type="primary" icon="el-icon-plus"
           @click="addingDate = true" round
         >Add Date</el-button>
         <el-button
           type="danger" icon="el-icon-check"
-          @click="saveDates" :disabled="savingDates" round
+          @click="saveDates(startYear, dateTypeId)" :disabled="savingDates" round
         >Save Dates</el-button>
         <add-date-dialog :adding-date="addingDate" @add="addDate" @close="addingDate = false">
         </add-date-dialog>
       </el-header>
-      <el-table :data="dates" empty-text="No dates" v-loading="savingDates || loadingDates">
+      <el-table :data="dateStrings" empty-text="No dates" v-loading="savingDates || loadingDates">
         <el-table-column prop="date" label="Date"></el-table-column>
         <el-table-column prop="comment" label="Comment"></el-table-column>
         <el-table-column align="right">
@@ -38,25 +38,20 @@ import { dateTypes } from '@/utils';
 
 export default {
   name: 'date-list',
-  data() {
-    const { startYear, dateTypeId } = this.$route.params;
-
-    return {
-      startYear: Number(startYear),
-      dateTypeId,
-      addingDate: false,
-      savingDates: false,
-      loadingDates: true,
-      dates: [],
-      datesModified: false,
-    };
-  },
+  props: ['startYear', 'dateTypeId'],
+  data: () => ({
+    addingDate: false,
+    savingDates: false,
+    loadingDates: true,
+    dates: [],
+    datesModified: false,
+  }),
   components: { AddDateDialog },
   methods: {
-    async fetchDates() {
+    async fetchDates(...args) {
       this.loadingDates = true;
       try {
-        const datesRes = await fetch(this.datesEndpoint);
+        const datesRes = await fetch(this.getDatesEndpoint(...args));
         if (!datesRes.ok) throw new Error();
         const { dates = [] } = await datesRes.json() || {};
         this.dates = dates;
@@ -73,17 +68,17 @@ export default {
       this.datesModified = true;
       if (Array.isArray(dateOrDates)) {
         const [start, end] = dateOrDates.map(date => moment(date));
-        const days = moment.duration(end.diff(start)).asDays();
+        const days = moment.duration(end.diff(start)).asDays() + 1;
 
-        Array(days).fill().forEach(() => {
+        Array(days).fill().forEach((item, index) => {
           this.dates.push({
-            date: start.add(1, 'd').format('MMMM D YYYY'),
+            date: start.clone().add(index, 'd').toDate(),
             comment,
           });
         });
       } else {
         this.dates.push({
-          date: moment(dateOrDates).format('MMMM D YYYY'),
+          date: dateOrDates,
           comment,
         });
       }
@@ -93,11 +88,11 @@ export default {
       this.datesModified = true;
       this.dates.splice(index, 1);
     },
-    async saveDates() {
+    async saveDates(...args) {
       this.savingDates = true;
       try {
-        const token = localStorage.get('jwt');
-        const saveRes = await fetch(this.datesEndpoint, {
+        const token = localStorage.getItem('token');
+        const saveRes = await fetch(this.getDatesEndpoint(...args), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -105,6 +100,7 @@ export default {
           },
           body: JSON.stringify({ dates: this.dates }),
         });
+
         if (!saveRes.ok) throw new Error();
         this.$notify({
           title: 'Success',
@@ -119,30 +115,28 @@ export default {
       this.savingDates = false;
       this.datesModified = false;
     },
-    async onRouteChange(key) {
-      if (this.datesModified) await this.saveDates();
-      this[key] = Number(this.$route.params[key]);
-      this.fetchDates();
+    getDatesEndpoint(startYear, dateTypeId) {
+      return `/api/specialDates?type=${dateTypeId}&year=${startYear}`;
     },
   },
   computed: {
+    dateStrings() {
+      return this.dates.map(dateObj => ({
+        ...dateObj,
+        date: moment(dateObj.date).format('MMMM D, YYYY'),
+      }));
+    },
     dateType() {
       return dateTypes[this.dateTypeId];
     },
-    datesEndpoint() {
-      return `/api/specialDates?type=${this.dateTypeId}&year=${this.startYear}`;
-    },
-  },
-  watch: {
-    '$route.params.startYear'() {
-      this.onRouteChange('startYear');
-    },
-    '$route.params.dateTypeId'() {
-      this.onRouteChange('dateTypeId');
-    },
   },
   created() {
-    this.fetchDates();
+    this.fetchDates(this.startYear, this.dateTypeId);
+  },
+  async beforeRouteUpdate({ params: toParams }, { params: fromParams }, next) {
+    if (this.datesModified) this.saveDates(fromParams.startYear, fromParams.dateTypeId);
+    this.fetchDates(toParams.startYear, toParams.dateTypeId);
+    next();
   },
 };
 </script>
