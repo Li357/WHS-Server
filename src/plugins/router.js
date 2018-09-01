@@ -27,19 +27,37 @@ const router = new VueRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   if (to.fullPath === '/') {
     const currentYear = new Date().getFullYear();
     next(`/dashboard/${currentYear}/1`);
   }
 
+  // May convert to SSR in future
   if (to.matched.some(({ meta }) => meta.admin)) {
-    if (localStorage.getItem('jwt')) {
-      next();
-    } else {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      next('/login');
+      return;
+    }
+
+    try {
+      const verificationRes = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      if (!verificationRes.ok) {
+        next('/login');
+        return;
+      }
+      const { user } = await verificationRes.json();
+      if (user.admin) next();
+      else next('/login');
+      return;
+    } catch (error) {
       next('/login');
     }
-    return;
   }
   next();
 });

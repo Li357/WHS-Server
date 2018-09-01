@@ -29,22 +29,23 @@ export default {
       try {
         const loginRes = await fetch('/api/login', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: this.username,
             password: this.password,
           }),
         });
         if (!loginRes.ok) throw new Error('There was an error logging in');
-        const { auth, token } = await loginRes.json();
 
+        const { auth, token } = await loginRes.json();
         if (auth) {
-          localStorage.setItem('jwt', token);
+          localStorage.setItem('token', token);
           const currentYear = new Date().getFullYear();
-          this.$router.push(`dashboard/${currentYear}/1`);
-        } else throw new Error('Your username or password is incorrect');
+          this.$router.push(`/dashboard/${currentYear}/1`);
+          return;
+        }
+
+        throw new Error('Your username or password was incorrect');
       } catch ({ message }) {
         this.error = message;
       }

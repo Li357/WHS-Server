@@ -96,10 +96,12 @@ export default {
     async saveDates() {
       this.savingDates = true;
       try {
+        const token = localStorage.get('jwt');
         const saveRes = await fetch(this.datesEndpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `JWT ${token}`,
           },
           body: JSON.stringify({ dates: this.dates }),
         });

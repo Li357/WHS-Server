@@ -20,6 +20,7 @@
               >{{ dateType }}</el-menu-item>
             </el-submenu>
           </el-menu>
+          <year-settings></year-settings>
         </el-aside>
         <router-view></router-view>
       </el-container>
@@ -28,6 +29,7 @@
 </template>
 
 <script>
+import YearSettings from '@/components/YearSettings.vue';
 import { dateTypes } from '@/utils';
 
 export default {
@@ -38,6 +40,7 @@ export default {
       .fill(new Date().getFullYear())
       .map((year, index) => year + index),
   }),
+  components: { YearSettings },
   methods: {
     logout() {
       localStorage.removeItem('jwt');
