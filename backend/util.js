@@ -1,6 +1,13 @@
 const { MongoClient } = require('mongodb');
 const jwt = require('jsonwebtoken');
 
+const dateTypeKeys = {
+  1: 'assemblyDates',
+  2: 'noSchoolDates',
+  3: 'lateStartDates',
+  4: 'earlyDismissalDates',
+};
+
 function mongo(dbURL, dbName) {
   return async function mongoMiddleware(req, res, next) {
     try {
@@ -36,4 +43,4 @@ function log(method, route, error) {
   console.error(new Date(), method, route, error);
 } 
 
-module.exports = { mongo, requiresAuth, log };
+module.exports = { mongo, requiresAuth, log, dateTypeKeys };
