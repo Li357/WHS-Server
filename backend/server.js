@@ -4,7 +4,6 @@ const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
 const moment = require('moment');
-const { forceHTTPS } = require('expressjs-force-https');
 
 const api = require('./api.js');
 const { mongo, log } = require('./util.js');
@@ -22,7 +21,6 @@ if(process.env.NODE_ENV === 'production') {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(mongo(process.env.PROD_MONGODB, 'whs'));
-app.use(forceHTTPS);
 
 app.use('/api', api);
 

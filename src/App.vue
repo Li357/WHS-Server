@@ -1,11 +1,20 @@
 <template>
   <div id="app">
-    <router-view class="app-route" />
+    <loading v-if="loading"></loading>
+    <router-view v-else class="app-route"></router-view>
   </div>
 </template>
 
 <script>
-export default { name: 'app' };
+import { mapState } from 'vuex';
+
+import Loading from '@/views/Loading.vue';
+
+export default {
+  name: 'app',
+  components: { Loading },
+  computed: mapState(['loading']),
+};
 </script>
 
 <style>

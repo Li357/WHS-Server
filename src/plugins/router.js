@@ -5,6 +5,7 @@ import Login from '@/views/Login.vue';
 import Dashboard from '@/views/Dashboard.vue';
 import NotFound from '@/views/NotFound.vue';
 import DateList from '@/components/DateList.vue';
+import store from '@/plugins/store';
 
 Vue.use(VueRouter);
 
@@ -33,6 +34,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.fullPath === '/') {
     const currentYear = new Date().getFullYear();
     next(`/dashboard/${currentYear}/1`);
+    return;
   }
 
   // May convert to SSR in future
@@ -56,12 +58,11 @@ router.beforeEach(async (to, from, next) => {
       const { user } = await verificationRes.json();
       if (user.admin) next();
       else next('/login');
-      return;
     } catch (error) {
       next('/login');
     }
-  }
-  next();
+  } else next();
+  store.commit('finish');
 });
 
 export default router;
