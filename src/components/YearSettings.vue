@@ -9,8 +9,9 @@
     </el-header>
     <el-main>
       <el-row>Semester One Start: <span>{{ formattedSettings[0] }}</span></el-row>
-      <el-row>Semester Two Start: <span>{{ formattedSettings[1] }}</span></el-row>
-      <el-row>Last Day: <span>{{ formattedSettings[2] }}</span></el-row>
+      <el-row>Semester One End: <span> {{ formattedSettings[1] }}</span></el-row>
+      <el-row>Semester Two Start: <span>{{ formattedSettings[2] }}</span></el-row>
+      <el-row>Last Day: <span>{{ formattedSettings[3] }}</span></el-row>
     </el-main>
     <el-dialog
       :visible.sync="editingSettings"
@@ -25,6 +26,14 @@
           v-model="settings.semesterOneStart"
           type="date"
           placeholder="Pick semester one start"
+        ></el-date-picker>
+      </el-row>
+      <el-row>
+        Semester One End:
+        <el-date-picker
+          v-model="settings.semesterOneEnd"
+          type="date"
+          placeholder="Pick semester one end"
         ></el-date-picker>
       </el-row>
       <el-row>
@@ -59,6 +68,7 @@ import moment from 'moment';
 
 const initialSettings = {
   semesterOneStart: null,
+  semesterOneEnd: null,
   semesterTwoStart: null,
   lastDay: null,
 };
