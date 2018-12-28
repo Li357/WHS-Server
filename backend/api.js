@@ -1,6 +1,8 @@
 const { Router } = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const url = require('url');
+const fetch = require('node-fetch');
 
 const { requiresAuth, dateTypeKeys } = require('./util.js');
 const api = new Router();
@@ -90,6 +92,65 @@ api.post('/specialDates', requiresAuth(user => user.admin), async ({ db, body, q
       { upsert: true },
     );
     res.status(200).json({ auth: true });
+  } catch(error) {
+    next(error);
+  }
+});
+
+const hostname = process.env.NODE_ENV === 'development'
+  ? 'localhost:5000'
+  : 'whs-server.herokuapp.com';
+api.post('/shorten', async (req, res, next) => {
+  try {
+    const response = await fetch(
+      'https://api-ssl.bitly.com/v4/shorten',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${process.env.BITLY_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify({
+          long_url: url.format({
+            protocol: req.protocol,
+            host: hostname,
+            pathname: '/api/share',
+            query: {
+              d: req.query.d,
+            },
+          }),
+        }),
+      },
+    );
+    const json = await response.json();
+    res.status(200).json({ link: `https://${json.id}` });
+  } catch(error) {
+    next(error);
+  }
+});
+
+// Endpoint to rehydrate schedule, see WHS/src/util/qr.js for compression
+api.get('/share', async ({ query: { d } }, res) => {
+  try {
+    const [S, D, name] = JSON.parse(Buffer.from(d, 'base64').toString());
+    const rehydrated = D.reduce((newSchedule, daySchedule) => {
+      daySchedule.forEach(item => {
+        const [index, startMod, length] = item.split('|');
+        const [title, body, sourceId] = S[index].split('|');
+        newSchedule.push({
+          startMod,
+          length,
+          endMod: startMod + length,
+          title,
+          body,
+          sourceId,
+        }); 
+      });
+    }, []);
+    res.status(200).json({
+      schedule: rehydrated,
+      name,
+    });
   } catch(error) {
     next(error);
   }
