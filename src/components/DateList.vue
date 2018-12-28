@@ -51,7 +51,9 @@ export default {
     async fetchDates(...args) {
       this.loadingDates = true;
       try {
-        const datesRes = await fetch(this.getDatesEndpoint(...args));
+        const datesRes = await fetch(this.getDatesEndpoint(...args), {
+          credentials: 'include',
+        });
         if (!datesRes.ok) throw new Error();
         const { dates = [] } = await datesRes.json() || {};
         this.dates = dates;
@@ -91,12 +93,11 @@ export default {
     async saveDates(...args) {
       this.savingDates = true;
       try {
-        const token = localStorage.getItem('token');
         const saveRes = await fetch(this.getDatesEndpoint(...args), {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `JWT ${token}`,
           },
           body: JSON.stringify({ dates: this.dates }),
         });

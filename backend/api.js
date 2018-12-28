@@ -7,44 +7,47 @@ const fetch = require('node-fetch');
 const { requiresAuth, dateTypeKeys } = require('./util.js');
 const api = new Router();
 
-/* Login endpoint */
+/* Login endpoint for admin */
+const isProduction = process.env.NODE_ENV === 'production';
 api.post('/login', async (req, res, next) => {
   try {
     const { username, password } = req.body;
-    const user = await req.db.collection('users').findOne({ username }) || {};
-    const auth = await bcrypt.compare(password, user.password);
+    const user = await req.db.collection('users').findOne({ username });
+    if (!user) {
+      res.status(401).json({ auth: false });
+      return;
+    }
 
-    if (!user || !auth) {
-      res.status(401).json({
-        auth: false,
-        token: null,
-      });
+    const auth = await bcrypt.compare(password, user.password);
+    if (!auth) {
+      res.status(401).json({ auth: false });
       return;
     }
 
     const { _id: id, admin } = user;
-    jwt.sign({ id, admin }, process.env.SECRET, { expiresIn: '7d' }, (err, token) => {
+    jwt.sign({ id, admin }, process.env.SECRET, { expiresIn: '1d' }, (err, token) => {
       if (err) {
         next(err);
         return;
       }
-      res.status(200).json({
-        auth: true,
-        token,
+
+      const [header, payload, signature] = token.split('.');
+      res.cookie('payload', `${header}.${payload}`, {
+        // So that it is testable on localhost.
+        // Cookies are expired on end of session
+        secure: isProduction,
+        sameSite: true,
       });
+      res.cookie('signature', signature, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: true,
+      });
+      res.status(200).json({ auth: true });
     });
   } catch(error) {
     next(error);
   }
-});
-
-/* Verify token for client-side routing */
-api.post('/verify', async (req, res, next) => {
-  const { token } = req.body;
-  jwt.verify(token, process.env.SECRET, (err, user) => {
-    if (!err && user) res.status(200).json({ auth: true, user })
-    else res.status(401).json({ auth: false, msg: err.name });
-  });
 });
 
 api.get('/specialDates', async ({ db, query: { type, year, onlyDates } }, res, next) => {

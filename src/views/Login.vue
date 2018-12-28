@@ -29,17 +29,15 @@ export default {
       try {
         const loginRes = await fetch('/api/login', {
           method: 'POST',
+          credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             username: this.username,
             password: this.password,
           }),
         });
-        if (!loginRes.ok) throw new Error('There was an error logging in');
-
-        const { auth, token } = await loginRes.json();
+        const { auth } = await loginRes.json();
         if (auth) {
-          localStorage.setItem('token', token);
           const currentYear = new Date().getFullYear();
           this.$router.push(`/dashboard/${currentYear}/1`);
           return;

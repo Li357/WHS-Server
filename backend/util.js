@@ -21,21 +21,14 @@ function mongo(dbURL, dbName) {
   }
 }
 
-function hasAuthHeader(headers) {
-  return headers && headers.authorization;
-}
-
 function requiresAuth(callback) {
   return function authMiddleware(req, res, next) {
-    if (hasAuthHeader(req.headers)) {
-      const [type, token] = req.headers.authorization.split(' ');
-      if (type === 'JWT') {
-        jwt.verify(token, process.env.SECRET, (err, decoded) => {
-          if (!err && decoded && callback(decoded)) next();
-          else res.status(401).json({ auth: false, msg: err.name });
-        });
-      }
-    }
+    const { signature, payload } = req.cookies;
+    const token = `${payload}.${signature}`;
+    jwt.verify(token, process.env.SECRET, (err, decoded) => {
+      if (!err && decoded && callback(decoded)) next();
+      else res.status(401).json({ auth: false, msg: err.name });
+    });
   }
 }
 

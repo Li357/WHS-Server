@@ -83,7 +83,9 @@ export default {
   methods: {
     async fetchSettings() {
       try {
-        const settingsRes = await fetch(this.settingsEndpoint);
+        const settingsRes = await fetch(this.settingsEndpoint, {
+          credentials: 'include',
+        });
         if (!settingsRes.ok) throw new Error();
         const doc = await settingsRes.json();
 
@@ -107,9 +109,9 @@ export default {
         const token = localStorage.getItem('token');
         const saveRes = await fetch(this.settingsEndpoint, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `JWT ${token}`,
           },
           body: JSON.stringify({ settings: this.settings }),
         });

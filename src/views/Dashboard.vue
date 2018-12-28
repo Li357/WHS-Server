@@ -30,7 +30,7 @@
 
 <script>
 import YearSettings from '@/components/YearSettings.vue';
-import { dateTypes } from '@/utils';
+import { dateTypes, deleteCookie } from '@/utils';
 
 export default {
   name: 'dashboard',
@@ -44,7 +44,7 @@ export default {
   components: { YearSettings },
   methods: {
     logout() {
-      localStorage.removeItem('jwt');
+      deleteCookie('payload');
       this.$router.push('/login');
     },
   },

@@ -6,6 +6,7 @@ import Dashboard from '@/views/Dashboard.vue';
 import NotFound from '@/views/NotFound.vue';
 import DateList from '@/components/DateList.vue';
 import store from '@/plugins/store';
+import { getCookie } from '@/utils';
 
 Vue.use(VueRouter);
 
@@ -37,30 +38,18 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  // May convert to SSR in future
   if (to.matched.some(({ meta }) => meta.admin)) {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const payload = getCookie('payload');
+    if (!payload) {
       next('/login');
       return;
     }
 
-    try {
-      const verificationRes = await fetch('/api/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      if (!verificationRes.ok) {
-        next('/login');
-        return;
-      }
-      const { user } = await verificationRes.json();
-      if (user.admin) next();
-      else next('/login');
-    } catch (error) {
-      next('/login');
-    }
+    const [, decoded] = payload.split('.');
+    const json = JSON.parse(atob(decoded));
+    // Ok because all date modifications require httpOnly cookies anyway
+    if (json.admin) next();
+    else next('/login');
   } else next();
   store.commit('finish');
 });
