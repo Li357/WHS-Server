@@ -100,9 +100,9 @@ api.post('/specialDates', requiresAuth(user => user.admin), async ({ db, body, q
   }
 });
 
-const hostname = process.env.NODE_ENV === 'development'
-  ? 'localhost:5000'
-  : 'whs-server.herokuapp.com';
+const hostname = isProduction
+  ? 'whs-server.herokuapp.com'
+  : '192.168.0.13:5000';
 api.post('/shorten', async (req, res, next) => {
   try {
     const response = await fetch(
@@ -115,7 +115,7 @@ api.post('/shorten', async (req, res, next) => {
         },
         body: JSON.stringify({
           long_url: url.format({
-            protocol: req.protocol,
+            protocol: isProduction ? 'https' : '',
             host: hostname,
             pathname: '/api/share',
             query: {
@@ -133,7 +133,7 @@ api.post('/shorten', async (req, res, next) => {
 });
 
 // Endpoint to rehydrate schedule, see WHS/src/util/qr.js for compression
-api.get('/share', async ({ query: { d } }, res) => {
+api.get('/share', async ({ query: { d } }, res, next) => {
   try {
     const [S, D, name] = JSON.parse(Buffer.from(d, 'base64').toString());
     const rehydrated = D.reduce((newSchedule, daySchedule) => {
