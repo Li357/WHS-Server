@@ -9,6 +9,7 @@ const store = new Store({
   },
   mutations: {
     finish(state) {
+      // eslint-disable-next-line no-param-reassign
       state.loading = false;
     },
   },

@@ -8,13 +8,14 @@ const moment = require('moment');
 
 const api = require('./api.js');
 const { mongo, log } = require('./util.js');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(helmet());
 app.use(cookieParser());
 
-if(process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.resolve(__dirname, '../dist')));
 } else {
   app.use(cors());
@@ -65,7 +66,7 @@ app.get('/specialDates', async (req, res, next) => {
     const currentYear = new Date().getFullYear();
     const [asm, nos, lts, ead] = (await Promise.all(Array(4).fill().map((item, i) => (
       req.db.collection('specialDates').findOne({
-        type: String(i + 1), 
+        type: String(i + 1),
         year: String(currentYear),
       })
     )))).map(doc => (doc ? doc.dates : []).map(dateObj => (
@@ -76,9 +77,9 @@ app.get('/specialDates', async (req, res, next) => {
       type: '5',
       year: String(currentYear),
     });
-    for (const key in settings) {
+    Object.keys(settings).forEach((key) => {
       settings[key] = moment(settings[key]).format('MMMM D YYYY');
-    }
+    });
 
     res.status(200).json({
       assemblyDates: asm,
@@ -88,7 +89,7 @@ app.get('/specialDates', async (req, res, next) => {
       earlyDismissalDates: ead,
       ...settings,
     });
-  } catch(error) {
+  } catch (error) {
     next(error);
   }
 });
@@ -99,8 +100,8 @@ app.get('*', (req, res) => {
 });
 
 // Global error handler
-app.use((err, { route }, res, next) => {
-  const methods = Object.keys(route.methods).map(m  => m.toUpperCase()).join(' ');
+app.use((err, { route }, res) => {
+  const methods = Object.keys(route.methods).map(m => m.toUpperCase()).join(' ');
   log(methods, route.path, err);
   res.status(500).send('Something went wrong :(');
 });
@@ -108,6 +109,4 @@ app.use((err, { route }, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running on ${PORT}`);
 });
-
-
 

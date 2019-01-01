@@ -10,7 +10,7 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint",
+    "lint": "vue-cli-service lint backend/",
     "start": "node backend/server.js",
     "build:local": "yarn build && cross-env NODE_ENV=production nodemon backend/server.js",
     "heroku-postbuild": "yarn build"
@@ -27,6 +27,7 @@
     "moment": "^2.22.2",
     "mongodb": "^3.0.6",
     "node-fetch": "^2.3.0",
+    "pako": "^1.0.7",
     "vue": "^2.5.17",
     "vue-router": "^3.0.1",
     "vuex": "^3.0.1"

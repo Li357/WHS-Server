@@ -1,10 +1,11 @@
 const { Router } = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const url = require('url');
 const fetch = require('node-fetch');
+const { inflate } = require('pako');
 
 const { requiresAuth, dateTypeKeys } = require('./util.js');
+
 const api = new Router();
 
 /* Login endpoint for admin */
@@ -45,19 +46,19 @@ api.post('/login', async (req, res, next) => {
       });
       res.status(200).json({ auth: true });
     });
-  } catch(error) {
+  } catch (error) {
     next(error);
   }
 });
 
-api.get('/specialDates', async ({ db, query: { type, year, onlyDates } }, res, next) => {
+api.get('/specialDates', async ({ db, query: { type: dateType, year, onlyDates } }, res, next) => {
   try {
-    if (!type && year) {
+    if (!dateType && year) {
       const docs = await db.collection('specialDates').find({ year }).toArray();
 
       // Request for only dates by app
       if (onlyDates) {
-        const dates = docs.reduce((datesDict, { type, dates, settings }) => {
+        const specialDates = docs.reduce((datesDict, { type, dates, settings }) => {
           if (type === '5') {
             return {
               ...datesDict,
@@ -65,13 +66,14 @@ api.get('/specialDates', async ({ db, query: { type, year, onlyDates } }, res, n
             };
           }
 
+          // eslint-disable-next-line no-param-reassign
           datesDict[dateTypeKeys[type]] = [
             ...datesDict[dateTypeKeys[type]] || [],
             ...dates.map(obj => obj.date),
           ];
           return datesDict;
         }, {});
-        res.status(200).json(dates);
+        res.status(200).json(specialDates);
         return;
       }
 
@@ -79,9 +81,9 @@ api.get('/specialDates', async ({ db, query: { type, year, onlyDates } }, res, n
       return;
     }
 
-    const doc = await db.collection('specialDates').findOne({ type, year });
+    const doc = await db.collection('specialDates').findOne({ type: dateType, year });
     res.status(200).json(doc);
-  } catch(error) {
+  } catch (error) {
     next(error);
   }
 });
@@ -90,20 +92,21 @@ api.post('/specialDates', requiresAuth(user => user.admin), async ({ db, body, q
   try {
     const set = body.dates ? { dates: body.dates } : { settings: body.settings };
     await db.collection('specialDates').update(
-      { type, year }, 
-      { $set: set }, 
+      { type, year },
+      { $set: set },
       { upsert: true },
     );
     res.status(200).json({ auth: true });
-  } catch(error) {
+  } catch (error) {
     next(error);
   }
 });
 
-const hostname = isProduction
-  ? 'whs-server.herokuapp.com'
-  : '192.168.0.13:5000';
-api.post('/shorten', async (req, res, next) => {
+const { BITLY_ACCESS_TOKEN } = process.env;
+const hostname = 'whs-server.herokuapp.com';
+const urlPrefix = `https://${hostname}/?d=`;
+
+api.post('/shorten', async ({ query: { d } }, res, next) => {
   try {
     const response = await fetch(
       'https://api-ssl.bitly.com/v4/shorten',
@@ -111,34 +114,44 @@ api.post('/shorten', async (req, res, next) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${process.env.BITLY_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${BITLY_ACCESS_TOKEN}`,
         },
         body: JSON.stringify({
-          long_url: url.format({
-            protocol: isProduction ? 'https' : '',
-            host: hostname,
-            pathname: '/api/share',
-            query: {
-              d: req.query.d,
-            },
-          }),
+          long_url: `${urlPrefix}${d}`,
         }),
       },
     );
-    const json = await response.json();
-    res.status(200).json({ link: `https://${json.id}` });
-  } catch(error) {
+    const { id } = await response.json();
+    res.status(200).json({ id });
+  } catch (error) {
     next(error);
   }
 });
 
 // Endpoint to rehydrate schedule, see WHS/src/util/qr.js for compression
-api.get('/share', async ({ query: { d } }, res, next) => {
+api.get('/expand', async ({ query: { id } }, res, next) => {
   try {
-    const [S, D, name] = JSON.parse(Buffer.from(d, 'base64').toString());
-    const rehydrated = D.reduce((newSchedule, daySchedule) => {
-      daySchedule.forEach(item => {
-        const [index, startMod, length] = item.split('|');
+    const response = await fetch(
+      'https://api-ssl.bitly.com/v4/expand',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${BITLY_ACCESS_TOKEN}`,
+        },
+        body: JSON.stringify({
+          bitlink_id: id,
+        }),
+      },
+    );
+    const { long_url: longURL } = await response.json();
+    const d = longURL.substring(urlPrefix.length);
+    const jsonString = inflate(Buffer.from(d, 'base64'), { to: 'string' });
+
+    const [S, D, name] = JSON.parse(jsonString);
+    const rehydrated = D.reduce((newSchedule, daySchedule, dayIndex) => {
+      daySchedule.forEach((item) => {
+        const [index, startMod, length] = item.split('|').map(Number);
         const [title, body, sourceId] = S[index].split('|');
         newSchedule.push({
           startMod,
@@ -146,15 +159,17 @@ api.get('/share', async ({ query: { d } }, res, next) => {
           endMod: startMod + length,
           title,
           body,
-          sourceId,
-        }); 
+          sourceId: Number(sourceId),
+          day: dayIndex + 1,
+        });
       });
+      return newSchedule;
     }, []);
     res.status(200).json({
       schedule: rehydrated,
       name,
     });
-  } catch(error) {
+  } catch (error) {
     next(error);
   }
 });

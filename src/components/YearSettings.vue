@@ -106,7 +106,6 @@ export default {
     },
     async saveSettings() {
       try {
-        const token = localStorage.getItem('token');
         const saveRes = await fetch(this.settingsEndpoint, {
           method: 'POST',
           credentials: 'include',

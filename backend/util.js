@@ -18,7 +18,7 @@ function mongo(dbURL, dbName) {
       console.log(error, 'Connecting to database', new Date());
       next(error);
     }
-  }
+  };
 }
 
 function requiresAuth(callback) {
@@ -29,11 +29,13 @@ function requiresAuth(callback) {
       if (!err && decoded && callback(decoded)) next();
       else res.status(401).json({ auth: false, msg: err.name });
     });
-  }
+  };
 }
 
 function log(method, route, error) {
   console.error(new Date(), method, route, error);
-} 
+}
 
-module.exports = { mongo, requiresAuth, log, dateTypeKeys };
+module.exports = {
+  mongo, requiresAuth, log, dateTypeKeys,
+};
