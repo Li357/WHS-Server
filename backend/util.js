@@ -8,6 +8,10 @@ const dateTypeKeys = {
   4: 'earlyDismissalDates',
 };
 
+function log(method, route, error) {
+  console.error(new Date(), method, route, error);
+}
+
 function mongo(dbURL, dbName) {
   return async function mongoMiddleware(req, res, next) {
     try {
@@ -15,7 +19,7 @@ function mongo(dbURL, dbName) {
       req.db = database.db(dbName);
       next();
     } catch (error) {
-      console.log(error, 'Connecting to database', new Date());
+      log(error, 'Connecting to database', new Date());
       next(error);
     }
   };
@@ -32,10 +36,13 @@ function requiresAuth(callback) {
   };
 }
 
-function log(method, route, error) {
-  console.error(new Date(), method, route, error);
+// eslint-ignore-next-line no-unused-vars
+function errorHandler(err, { route }, res, next) { // next needed for error handling signature
+  const methods = Object.keys(route.methods).map(m => m.toUpperCase()).join(' ');
+  log(methods, route.path, err);
+  res.status(500).send('Something went wrong :(');
 }
 
 module.exports = {
-  mongo, requiresAuth, log, dateTypeKeys,
+  mongo, requiresAuth, errorHandler, log, dateTypeKeys,
 };
